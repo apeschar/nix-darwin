@@ -20,7 +20,7 @@
     grep -F "${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up wg0" "$script"
 
     echo >&2 "checking wg-quick waits for endpoint DNS"
-    grep -F "/usr/bin/dscacheutil -q host -a name \"\$host\"" "$script"
+    grep -F "/usr/bin/dscacheutil -q host -a name \"\$host\" | /usr/bin/grep -Eq '^(ip_address|ipv6_address): '" "$script"
     grep -F "Waiting for DNS to resolve \$host" "$script"
     (! grep -F "exit 75" "$script")
     grep -F "example.com" "$script"

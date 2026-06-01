@@ -145,7 +145,7 @@ let
   generateWaitForEndpointDNS = interfaceOpt:
     optionalString (endpointHosts interfaceOpt != [ ]) ''
       for host in ${concatMapStringsSep " " escapeShellArg (endpointHosts interfaceOpt)}; do
-        until /usr/bin/dscacheutil -q host -a name "$host" >/dev/null 2>&1; do
+        until /usr/bin/dscacheutil -q host -a name "$host" | /usr/bin/grep -Eq '^(ip_address|ipv6_address): '; do
           echo "Waiting for DNS to resolve $host" >&2
           sleep 1
         done
