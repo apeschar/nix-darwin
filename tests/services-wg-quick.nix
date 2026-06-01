@@ -1,13 +1,7 @@
 { config, pkgs, ... }:
 
 {
-  networking.wg-quick.interfaces.wg0 = {
-    privateKeyFile = "/var/lib/wireguard/wg0.key";
-    peers = [{
-      publicKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-      endpoint = "example.com:51820";
-    }];
-  };
+  networking.wg-quick.interfaces.wg0.privateKeyFile = "/var/lib/wireguard/wg0.key";
 
   test = ''
     plist=${config.out}/Library/LaunchDaemons/org.nixos.wg-quick-wg0.plist
@@ -19,11 +13,9 @@
     script=$(awk -F'[< ]' '$6 ~ "^/nix/store/.*wg-quick-wg0" {print $6}' "$plist")
     grep -F "${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up wg0" "$script"
 
-    echo >&2 "checking wg-quick waits for endpoint DNS"
-    grep -F "/usr/bin/dscacheutil -q host -a name \"\$host\" | /usr/bin/grep -Eq '^(ip_address|ipv6_address): '" "$script"
-    grep -F "Waiting for DNS to resolve \$host" "$script"
-    (! grep -F "exit 75" "$script")
-    grep -F "example.com" "$script"
+    echo >&2 "checking wg-quick retries failures"
+    grep -F "until ${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up wg0; do" "$script"
+    grep -F "wg-quick up wg0 failed; retrying in 1 second" "$script"
 
     echo >&2 "checking wg-quick leaves wireguard-go running"
     grep -F "<key>AbandonProcessGroup</key>" "$plist"
