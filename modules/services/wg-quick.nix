@@ -126,6 +126,32 @@ let
   generateInterfaceScript = name: text:
     ((pkgs.writeShellScriptBin name text) + "/bin/${name}");
 
+  endpointHost = endpoint:
+    if hasPrefix "[" endpoint then
+      elemAt (splitString "]" (removePrefix "[" endpoint)) 0
+    else
+      head (splitString ":" endpoint);
+
+  isIPAddress = host:
+    match "^[0-9]+(\\.[0-9]+){3}$" host != null
+    || (hasInfix ":" host && match "^[0-9A-Fa-f:]+$" host != null);
+
+  endpointHosts = interfaceOpt:
+    unique (filter (host: !isIPAddress host)
+      (map endpointHost
+        (filter (endpoint: endpoint != null)
+          (map (peer: peer.endpoint) interfaceOpt.peers))));
+
+  generateWaitForEndpointDNS = interfaceOpt:
+    optionalString (endpointHosts interfaceOpt != [ ]) ''
+      for host in ${concatMapStringsSep " " escapeShellArg (endpointHosts interfaceOpt)}; do
+        until /usr/bin/dscacheutil -q host -a name "$host" >/dev/null 2>&1; do
+          echo "Waiting for DNS to resolve $host" >&2
+          sleep 1
+        done
+      done
+    '';
+
   generatePostUpPSKText = name: interfaceOpt:
     map (peer:
       optionalString (peer.presharedKeyFile != null) ''
@@ -187,6 +213,7 @@ let
   generateLaunchDaemonAttrs = name: interfaceOpt:
     nameValuePair "wg-quick-${name}" {
       command = generateInterfaceScript "wg-quick-${name}" ''
+        ${generateWaitForEndpointDNS interfaceOpt}
         exec ${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up ${name}
       '';
       serviceConfig = {
