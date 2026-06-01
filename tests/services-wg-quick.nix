@@ -12,5 +12,8 @@
     echo >&2 "checking wg-quick command locking"
     script=$(awk -F'[< ]' '$6 ~ "^/nix/store/.*wg-quick-wg0" {print $6}' "$plist")
     grep -F "${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up wg0" "$script"
+
+    echo >&2 "checking wg-quick leaves wireguard-go running"
+    grep -F "<key>AbandonProcessGroup</key>" "$plist"
   '';
 }

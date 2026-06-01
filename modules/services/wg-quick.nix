@@ -190,6 +190,7 @@ let
         exec ${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up ${name}
       '';
       serviceConfig = {
+        AbandonProcessGroup = true;
         EnvironmentVariables = {
           PATH =
             "${pkgs.wireguard-tools}/bin:${pkgs.wireguard-go}/bin:${config.environment.systemPath}";
