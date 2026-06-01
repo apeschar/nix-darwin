@@ -187,7 +187,18 @@ let
   generateLaunchDaemonAttrs = name: interfaceOpt:
     nameValuePair "wg-quick-${name}" {
       command = generateInterfaceScript "wg-quick-${name}" ''
-        until ${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up ${name}; do
+        while true; do
+          if [ -f /var/run/wireguard/${name}.name ]; then
+            interface=$(cat /var/run/wireguard/${name}.name)
+            if ${pkgs.wireguard-tools}/bin/wg show "$interface" >/dev/null 2>&1; then
+              sleep 60
+              continue
+            fi
+          fi
+
+          if ${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up ${name}; then
+            continue
+          fi
           echo "wg-quick up ${name} failed; retrying in 1 second" >&2
           sleep 1
         done

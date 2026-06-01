@@ -14,8 +14,12 @@
     grep -F "${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up wg0" "$script"
 
     echo >&2 "checking wg-quick retries failures"
-    grep -F "until ${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up wg0; do" "$script"
+    grep -F "while true; do" "$script"
     grep -F "wg-quick up wg0 failed; retrying in 1 second" "$script"
+
+    echo >&2 "checking wg-quick waits while tunnel exists"
+    grep -F "interface=\$(cat /var/run/wireguard/wg0.name)" "$script"
+    grep -F "${pkgs.wireguard-tools}/bin/wg show \"\$interface\"" "$script"
 
     echo >&2 "checking wg-quick leaves wireguard-go running"
     grep -F "<key>AbandonProcessGroup</key>" "$plist"
