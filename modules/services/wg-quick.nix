@@ -186,7 +186,9 @@ let
 
   generateLaunchDaemonAttrs = name: interfaceOpt:
     nameValuePair "wg-quick-${name}" {
-      command = "${pkgs.wireguard-tools}/bin/wg-quick up ${name}";
+      command = generateInterfaceScript "wg-quick-${name}" ''
+        exec ${pkgs.darwin.shell_cmds}/bin/lockf -k /var/run/wg-quick.lock ${pkgs.wireguard-tools}/bin/wg-quick up ${name}
+      '';
       serviceConfig = {
         EnvironmentVariables = {
           PATH =
